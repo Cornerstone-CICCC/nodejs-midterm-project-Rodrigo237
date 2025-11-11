@@ -1,0 +1,27 @@
+---
+import '../styles/global.css';
+import '../styles/index.css';
+import Header from '../components/Header.astro';
+
+const title = 'Inicio';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <Header />
+
+    <div class="container">
+      <h1>My Personal Blog</h1>
+      
+      <div class="button-group">
+        <a href="/login" class="btn btn-primary">Log In</a>
+        <a href="/profile" class="btn btn-secondary">Sign Up</a>
+      </div>
+    </div>
+  </body>
+</html>

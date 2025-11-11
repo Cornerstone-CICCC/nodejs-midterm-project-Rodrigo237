@@ -1,0 +1,109 @@
+---
+// Header.astro - Componente reutilizable de encabezado
+---
+
+<header class="header">
+  <div class="header-container">
+    <a href="/" class="logo">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="2"/>
+        <text x="20" y="26" text-anchor="middle" font-size="20" font-weight="bold" fill="currentColor">B</text>
+      </svg>
+      <span class="logo-text">My Blog</span>
+    </a>
+    
+    <nav class="navbar">
+      <ul>
+        <li><a href="/">Main</a></li>
+        <li><a href="/login">Log In</a></li>
+        <li><a href="/profile">Profile</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .header {
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    padding: 1rem 2rem;
+  }
+
+  .header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #667eea;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+
+  .logo:hover {
+    color: #764ba2;
+  }
+
+  .logo svg {
+    color: #667eea;
+    transition: color 0.3s ease;
+  }
+
+  .logo:hover svg {
+    color: #764ba2;
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .logo-text {
+      display: inline;
+    }
+  }
+
+  .navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .navbar a {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    font-size: 0.95rem;
+  }
+
+  .navbar a:hover {
+    color: #667eea;
+  }
+
+  @media (max-width: 768px) {
+    .header {
+      padding: 0.75rem 1rem;
+    }
+
+    .header-container {
+      flex-wrap: wrap;
+    }
+
+    .navbar ul {
+      gap: 1rem;
+      width: 100%;
+      justify-content: flex-start;
+      margin-top: 1rem;
+    }
+  }
+</style>

@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+import '../styles/profile.css';
+import Header from '../components/Header.astro';
+
+const title = 'Profile';
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <Header />
+
+    <div class="profile-container">
+      <div class="profile-card">
+        <h2>Tu Perfil</h2>
+        <div id="profile" class="profile-info">Cargando...</div>
+        <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
+      </div>
+    </div>
+
+    <script>
+      async function loadProfile() {
+        try {
+          const res = await fetch('http://localhost:4000/users/profile', {
+            credentials: 'include'
+          });
+          const data = await res.json();
+          if (res.ok) {
+            const profileDiv = document.getElementById('profile');
+            profileDiv.innerHTML = `
+              <div class="info-row">
+                <span class="label">Usuario:</span>
+                <span class="value">${data.username}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Nombre:</span>
+                <span class="value">${data.firstName}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Apellido:</span>
+                <span class="value">${data.lastName}</span>
+              </div>
+            `;
+          } else {
+            document.getElementById('profile').innerHTML = `<p class="error">${data.message || 'No autorizado. <a href="/login">Volver a login</a>'}</p>`;
+          }
+        } catch (err) {
+          document.getElementById('profile').innerHTML = '<p class="error">No se pudo conectar al backend.</p>';
+        }
+      }
+
+      async function logout() {
+        try {
+          await fetch('http://localhost:4000/users/logout', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          window.location.href = '/login';
+        } catch (err) {
+          alert('Error al cerrar sesión');
+        }
+      }
+
+      document.getElementById('logout-btn')?.addEventListener('click', logout);
+      loadProfile();
+    </script>
+  </body>
+</html>
