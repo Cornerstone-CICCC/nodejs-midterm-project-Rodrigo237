@@ -15,7 +15,6 @@ body {
   flex-direction: column;
 }
 
-/* Tipografía */
 h1 {
   color: #667eea;
   margin-bottom: 1rem;
@@ -43,7 +42,6 @@ code {
   color: #d63384;
 }
 
-/* Botones */
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;

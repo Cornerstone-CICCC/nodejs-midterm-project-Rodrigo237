@@ -1,0 +1,131 @@
+---
+import '../styles/global.css';
+import '../styles/form.css';
+import Header from '../components/Header.astro';
+
+const title = 'Create Post';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <Header />
+
+    <div class="form-container">
+      <form id="new-post-form" class="form post-form">
+        <h2>Create New Post</h2>
+
+        <div class="form-group">
+          <label for="title">Title:</label>
+          <input type="text" id="title" name="title" placeholder="Post title" required />
+        </div>
+
+        <div class="form-group">
+          <label for="summary">Summary:</label>
+          <textarea id="summary" name="summary" placeholder="Brief summary (optional)" rows="2"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="content">Content:</label>
+          <textarea id="content" name="content" placeholder="Write your post content here..." rows="8" required></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">Publish Post</button>
+
+        <p class="form-footer"><a href="/blog">Back to Blog</a></p>
+      </form>
+    </div>
+
+    <script>
+      interface BlogPost {
+        id: string;
+        username: string;
+        title: string;
+        content: string;
+        summary: string;
+        createdAt: string;
+      }
+
+      function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+      }
+
+      const form = document.getElementById('new-post-form') as HTMLFormElement | null;
+      if (form instanceof HTMLFormElement) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const formData = new FormData(form);
+          
+          try {
+            // First, get the username from backend to verify user is logged in
+            const profileRes = await fetch('http://localhost:3700/users/profile', {
+              credentials: 'include'
+            });
+            
+            if (!profileRes.ok) {
+              alert('Please log in first');
+              window.location.href = '/login';
+              return;
+            }
+
+            const profileData = await profileRes.json();
+            const username = profileData.username;
+
+            // Create post object
+            const newPost: BlogPost = {
+              id: generateId(),
+              username: username,
+              title: String(formData.get('title')),
+              summary: String(formData.get('summary') || ''),
+              content: String(formData.get('content')),
+              createdAt: new Date().toISOString()
+            };
+
+            // Get existing posts from localStorage
+            const allPostsJSON = localStorage.getItem('blogPosts');
+            const allPosts: BlogPost[] = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+
+            // Add new post
+            allPosts.push(newPost);
+
+            // Save back to localStorage
+            localStorage.setItem('blogPosts', JSON.stringify(allPosts));
+
+            alert('Post created successfully!');
+            window.location.href = '/blog';
+          } catch (err) {
+            console.error(err);
+            alert('Error: Could not verify user');
+          }
+        });
+      }
+    </script>
+
+    <style>
+      .post-form {
+        max-width: 800px;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-size: 1rem;
+        font-family: inherit;
+        transition: border-color 0.3s ease;
+        resize: vertical;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+    </style>
+  </body>
+</html>

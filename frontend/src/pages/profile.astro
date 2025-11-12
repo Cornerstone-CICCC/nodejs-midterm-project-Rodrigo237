@@ -6,7 +6,7 @@ import Header from '../components/Header.astro';
 const title = 'Profile';
 ---
 
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,57 +17,257 @@ const title = 'Profile';
 
     <div class="profile-container">
       <div class="profile-card">
-        <h2>Tu Perfil</h2>
-        <div id="profile" class="profile-info">Cargando...</div>
-        <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
+        <h2>My Profile:</h2>
+        <div id="profile" class="profile-info">Loading ...</div>
+        <button id="logout-btn" class="btn-logout">Log out</button>
+    <div class="blog-section">
+      <h2>Tus Publicaciones</h2>
+      <div id="blog-grid" class="blog-grid"></div>
+      <div id="empty-blog-message" class="empty-blog">
+        <p>No has creado publicaciones aún.</p>
+        <button id="create-post-btn-empty" class="btn-create">➕ Crear nueva publicación</button>
+      </div>
+      <div style="text-align: center; margin-top: 20px;" id="create-post-btn-container">
+        <button id="create-post-btn" class="btn-create">➕ Crear nueva publicación</button>
       </div>
     </div>
 
+    <!-- Modal for creating posts -->
+    <div id="post-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Crear Nueva Publicación</h2>
+          <button id="close-modal" class="close-btn">&times;</button>
+        </div>
+        <form id="create-post-form" class="modal-form">
+          <div class="form-group">
+            <label for="post-title">Título:</label>
+            <input type="text" id="post-title" name="title" placeholder="Título del post" required />
+          </div>
+          <div class="form-group">
+            <label for="post-summary">Resumen:</label>
+            <textarea id="post-summary" name="summary" placeholder="Resumen breve (opcional)" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="post-content">Contenido:</label>
+            <textarea id="post-content" name="content" placeholder="Escribe tu contenido aquí..." rows="8" required></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn-submit">Publicar</button>
+            <button type="button" id="cancel-btn" class="btn-cancel">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div></div>
+
+
+    </div>
+
     <script>
+      interface BlogPost {
+        id: string;
+        username: string;
+        title: string;
+        content: string;
+        summary: string;
+        createdAt: string;
+      }
+
+      const BACKEND = 'http://localhost:3700';
+
+      function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+      }
+
+      function openModal() {
+        const modal = document.getElementById('post-modal') as HTMLElement;
+        if (modal) modal.style.display = 'flex';
+      }
+
+      function closeModal() {
+        const modal = document.getElementById('post-modal') as HTMLElement;
+        if (modal) modal.style.display = 'none';
+        const form = document.getElementById('create-post-form') as HTMLFormElement;
+        if (form) form.reset();
+      }
+      
       async function loadProfile() {
         try {
-          const res = await fetch('http://localhost:4000/users/profile', {
-            credentials: 'include'
-          });
+          const res = await fetch(`${BACKEND}/users/profile`, { credentials: 'include' });
           const data = await res.json();
+          const profileDiv = document.getElementById('profile');
           if (res.ok) {
-            const profileDiv = document.getElementById('profile');
-            profileDiv.innerHTML = `
-              <div class="info-row">
-                <span class="label">Usuario:</span>
-                <span class="value">${data.username}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Nombre:</span>
-                <span class="value">${data.firstName}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Apellido:</span>
-                <span class="value">${data.lastName}</span>
-              </div>
-            `;
+            // Store username in sessionStorage for use in loadUserBlogs
+            sessionStorage.setItem('currentUsername', data.username);
+            if (profileDiv) {
+              profileDiv.innerHTML = `
+                <div class="info-row">
+                  <span class="label">Usuario:</span>
+                  <span class="value">${data.username}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Nombre:</span>
+                  <span class="value">${data.firstName}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Apellido:</span>
+                  <span class="value">${data.lastName}</span>
+                </div>
+              `;
+              // Load blogs after profile is loaded
+              setTimeout(() => loadUserBlogs(), 100);
+            }
           } else {
-            document.getElementById('profile').innerHTML = `<p class="error">${data.message || 'No autorizado. <a href="/login">Volver a login</a>'}</p>`;
+            if (res.status === 401) {
+              window.location.href = '/login';
+              return;
+            }
+            if (profileDiv) profileDiv.innerHTML = `<p class="error">${data.message || 'Error'}</p>`;
           }
         } catch (err) {
-          document.getElementById('profile').innerHTML = '<p class="error">No se pudo conectar al backend.</p>';
+          const profileDiv = document.getElementById('profile');
+          if (profileDiv) profileDiv.innerHTML = '<p class="error">No se pudo conectar al backend.</p>';
         }
       }
 
       async function logout() {
         try {
-          await fetch('http://localhost:4000/users/logout', {
-            method: 'GET',
-            credentials: 'include'
-          });
+          await fetch(`${BACKEND}/users/logout`, { method: 'GET', credentials: 'include' });
+          sessionStorage.removeItem('currentUsername');
           window.location.href = '/login';
         } catch (err) {
           alert('Error al cerrar sesión');
         }
       }
 
-      document.getElementById('logout-btn')?.addEventListener('click', logout);
-      loadProfile();
+      function loadUserBlogs() {
+        const currentUsername = sessionStorage.getItem('currentUsername');
+        if (!currentUsername) {
+          console.log('No current username in sessionStorage');
+          return;
+        }
+
+        // Get all posts from localStorage
+        const allPostsJSON = localStorage.getItem('blogPosts');
+        const allPosts: BlogPost[] = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+        console.log('All posts:', allPosts);
+        
+        // Filter posts for current user
+        const userPosts = allPosts.filter((post: BlogPost) => post.username === currentUsername);
+        console.log('User posts:', userPosts);
+        
+        const grid = document.getElementById('blog-grid');
+        const emptyMessage = document.getElementById('empty-blog-message');
+        const createBtnContainer = document.getElementById('create-post-btn-container') as HTMLElement;
+
+        if (userPosts.length === 0) {
+          console.log('No posts, showing empty message');
+          if (grid) {
+            grid.style.display = 'none';
+            grid.innerHTML = '';
+          }
+          if (emptyMessage) emptyMessage.style.display = 'block';
+          if (createBtnContainer) createBtnContainer.style.display = 'none';
+          return;
+        }
+
+        console.log('Showing posts');
+        if (emptyMessage) emptyMessage.style.display = 'none';
+        if (createBtnContainer) createBtnContainer.style.display = 'block';
+        if (grid) {
+          grid.style.display = 'grid';
+          grid.innerHTML = userPosts.map((post: BlogPost) => `
+            <div class="blog-card">
+              <h3>${post.title}</h3>
+              <div class="meta">Publicado el ${new Date(post.createdAt).toLocaleDateString()}</div>
+              <p>${post.summary || 'Sin descripción.'}</p>
+              <div class="actions">
+                <a href="#" onclick="deletePost('${post.id}'); return false;">Eliminar</a>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      function deletePost(postId: string) {
+        if (confirm('¿Estás seguro de que deseas eliminar este post?')) {
+          const allPostsJSON = localStorage.getItem('blogPosts');
+          const allPosts: BlogPost[] = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+          
+          // Remove post with matching id
+          const updatedPosts = allPosts.filter((post: BlogPost) => post.id !== postId);
+          localStorage.setItem('blogPosts', JSON.stringify(updatedPosts));
+          
+          loadUserBlogs();
+        }
+      }
+
+      // Initialize when DOM is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        // Modal event listeners
+        const closeBtn = document.getElementById('close-modal');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const createPostBtnEmpty = document.getElementById('create-post-btn-empty');
+        const createPostBtn = document.getElementById('create-post-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        closeBtn?.addEventListener('click', closeModal);
+        cancelBtn?.addEventListener('click', closeModal);
+        createPostBtnEmpty?.addEventListener('click', openModal);
+        createPostBtn?.addEventListener('click', openModal);
+        logoutBtn?.addEventListener('click', logout);
+
+        // Close modal when clicking outside
+        const modal = document.getElementById('post-modal') as HTMLElement;
+        window.addEventListener('click', (event: Event) => {
+          if (event.target === modal) {
+            closeModal();
+          }
+        });
+
+        // Form submission
+        const createPostForm = document.getElementById('create-post-form') as HTMLFormElement;
+        if (createPostForm) {
+          createPostForm.addEventListener('submit', (e: Event) => {
+            e.preventDefault();
+            const currentUsername = sessionStorage.getItem('currentUsername');
+            if (!currentUsername) {
+              alert('Por favor inicia sesión primero');
+              return;
+            }
+
+            const formData = new FormData(createPostForm);
+            
+            const newPost: BlogPost = {
+              id: generateId(),
+              username: currentUsername,
+              title: String(formData.get('title')),
+              summary: String(formData.get('summary') || ''),
+              content: String(formData.get('content')),
+              createdAt: new Date().toISOString()
+            };
+
+            // Get existing posts from localStorage
+            const allPostsJSON = localStorage.getItem('blogPosts');
+            const allPosts: BlogPost[] = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+
+            // Add new post
+            allPosts.push(newPost);
+
+            // Save back to localStorage
+            localStorage.setItem('blogPosts', JSON.stringify(allPosts));
+
+            console.log('Post saved, posts in storage:', allPosts);
+
+            // Close modal and reload
+            closeModal();
+            loadUserBlogs();
+          });
+        }
+
+        // Load profile on page load
+        loadProfile();
+      });
     </script>
   </body>
 </html>

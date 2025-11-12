@@ -1,0 +1,116 @@
+---
+import '../styles/global.css';
+import '../styles/blog.css';
+import Header from '../components/Header.astro';
+
+const title = 'Blog';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <Header />
+
+    <div class="blog-container">
+      <div class="blog-header">
+        <h1>Blog Personal</h1>
+        <p>Explora los posts de nuestros usuarios</p>
+        <a href="/new-post" class="btn btn-primary">Crear Post</a>
+      </div>
+
+      <div class="blog-filters">
+        <input type="text" id="search-input" placeholder="Buscar posts..." class="search-input" />
+        <select id="filter-user" class="filter-select">
+          <option value="">Todos los usuarios</option>
+        </select>
+      </div>
+
+      <div id="blog-grid" class="blog-grid">
+        <p>Cargando posts...</p>
+      </div>
+    </div>
+
+    <script>
+      interface BlogPost {
+        id: string;
+        username: string;
+        title: string;
+        content: string;
+        summary: string;
+        createdAt: string;
+      }
+
+      let allPosts: BlogPost[] = [];
+
+      function loadPosts() {
+        // Load posts from localStorage
+        const allPostsJSON = localStorage.getItem('blogPosts');
+        allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+        
+        renderPosts(allPosts);
+        populateUserFilter();
+      }
+
+      function renderPosts(posts: BlogPost[]) {
+        const grid = document.getElementById('blog-grid');
+        if (!grid) return;
+
+        if (posts.length === 0) {
+          grid.innerHTML = '<p class="empty-message">No posts found</p>';
+          return;
+        }
+
+        grid.innerHTML = posts.map((post: BlogPost) => `
+          <article class="blog-card">
+            <h3><a href="/blog/${post.id}">${post.title}</a></h3>
+            <div class="meta">
+              <span class="author">Por ${post.username}</span>
+              <span class="date">${new Date(post.createdAt).toLocaleDateString()}</span>
+            </div>
+            <p class="summary">${post.summary}</p>
+            <a href="/blog/${post.id}" class="read-more">Leer más →</a>
+          </article>
+        `).join('');
+      }
+
+      function populateUserFilter() {
+        const users = [...new Set(allPosts.map((p: BlogPost) => p.username))];
+        const select = document.getElementById('filter-user') as HTMLSelectElement;
+        if (!select) return;
+
+        const currentValue = select.value;
+        users.forEach((username: string) => {
+          if (!select.querySelector(`option[value="${username}"]`)) {
+            const option = document.createElement('option');
+            option.value = username;
+            option.textContent = username;
+            select.appendChild(option);
+          }
+        });
+      }
+
+      function filterPosts() {
+        const searchText = (document.getElementById('search-input') as HTMLInputElement)?.value.toLowerCase() || '';
+        const selectedUser = (document.getElementById('filter-user') as HTMLSelectElement)?.value || '';
+
+        const filtered = allPosts.filter((post: BlogPost) => {
+          const matchesSearch = post.title.toLowerCase().includes(searchText) || 
+                                post.summary.toLowerCase().includes(searchText);
+          const matchesUser = !selectedUser || post.username === selectedUser;
+          return matchesSearch && matchesUser;
+        });
+
+        renderPosts(filtered);
+      }
+
+      document.getElementById('search-input')?.addEventListener('input', filterPosts);
+      document.getElementById('filter-user')?.addEventListener('change', filterPosts);
+
+      loadPosts();
+    </script>
+  </body>
+</html>
