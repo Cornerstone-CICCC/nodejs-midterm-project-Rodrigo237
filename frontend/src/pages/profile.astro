@@ -17,257 +17,467 @@ const title = 'Profile';
 
     <div class="profile-container">
       <div class="profile-card">
-        <h2>My Profile:</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h1>My Profile</h1>
+          <button id="edit-profile-btn" class="btn-edit-profile">Edit Profile</button>
+        </div>
         <div id="profile" class="profile-info">Loading ...</div>
-        <button id="logout-btn" class="btn-logout">Log out</button>
-    <div class="blog-section">
-      <h2>Tus Publicaciones</h2>
-      <div id="blog-grid" class="blog-grid"></div>
+      <div class="blog-section">
+        <h2>My Posts</h2>
+        <div id="blog-grid" class="blog-grid"></div>
       <div id="empty-blog-message" class="empty-blog">
-        <p>No has creado publicaciones aún.</p>
-        <button id="create-post-btn-empty" class="btn-create">➕ Crear nueva publicación</button>
+        <p>No Posts yet.</p>
+        <button id="create-post-btn-empty" class="btn-create">
+        <span class="icon">+</span> Add New Post</button>
       </div>
-      <div style="text-align: center; margin-top: 20px;" id="create-post-btn-container">
-        <button id="create-post-btn" class="btn-create">➕ Crear nueva publicación</button>
+        <div style="text-align: center; margin-top: 20px;" id="create-post-btn-container">
+           <button id="create-post-btn" class="btn-create">
+                    <span class="icon">+</span> Add New Post</button>
+
+        </div>
+    </div>
+    <!-- Modal for editing profile -->
+    <div id="profile-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Edit Profile</h2>
+          <button id="close-profile-modal" class="close-btn">&times;</button>
+        </div>
+        <form id="edit-profile-form" class="modal-form">
+          <div class="form-group">
+            <label for="profile-image">Profile Image URL (optional):</label>
+            <input type="text" id="profile-image" name="profileImage" placeholder="https://example.com/image.jpg" />
+          </div>
+          <div class="form-group">
+            <label for="profile-occupation">Occupation (optional):</label>
+            <input type="text" id="profile-occupation" name="occupation" placeholder="Your occupation" />
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn-submit">Save Changes</button>
+            <button type="button" id="cancel-profile-btn" class="btn-cancel">Cancel</button>
+          </div>
+        </form>
       </div>
     </div>
-
     <!-- Modal for creating posts -->
     <div id="post-modal" class="modal" style="display: none;">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Crear Nueva Publicación</h2>
+          <h2 id="modal-title">Add New Post</h2>
           <button id="close-modal" class="close-btn">&times;</button>
         </div>
         <form id="create-post-form" class="modal-form">
           <div class="form-group">
-            <label for="post-title">Título:</label>
-            <input type="text" id="post-title" name="title" placeholder="Título del post" required />
+            <label for="post-title">Title:</label>
+            <input type="text" id="post-title" name="title" placeholder="Post title" required />
           </div>
           <div class="form-group">
-            <label for="post-summary">Resumen:</label>
-            <textarea id="post-summary" name="summary" placeholder="Resumen breve (opcional)" rows="2"></textarea>
+            <label for="post-summary">Resume:</label>
+            <textarea id="post-summary" name="summary" placeholder="Quite resume" rows="2"></textarea>
           </div>
           <div class="form-group">
-            <label for="post-content">Contenido:</label>
-            <textarea id="post-content" name="content" placeholder="Escribe tu contenido aquí..." rows="8" required></textarea>
+            <label for="post-image">Image URL (optional):</label>
+            <input type="text" id="post-image" name="image" placeholder="https://example.com/image.jpg" />
+          </div>
+          <div class="form-group">
+            <label for="post-content">Content:</label>
+            <textarea id="post-content" name="content" placeholder="Write the content..." rows="8" required></textarea>
           </div>
           <div class="modal-footer">
-            <button type="submit" class="btn-submit">Publicar</button>
-            <button type="button" id="cancel-btn" class="btn-cancel">Cancelar</button>
+            <button type="submit" class="btn-submit">Publish</button>
+            <button type="button" id="cancel-btn" class="btn-cancel">Cancel</button>
           </div>
         </form>
       </div>
-    </div></div>
+    </div>
+    <div class="btn-logout-container">
+        <button id="logout-btn" class="btn-logout">Log out</button>
+    </div>
+</div>
 
+    
 
     </div>
+    
 
-    <script>
-      interface BlogPost {
-        id: string;
-        username: string;
-        title: string;
-        content: string;
-        summary: string;
-        createdAt: string;
-      }
+  <script>
+    // @ts-nocheck
 
-      const BACKEND = 'http://localhost:3700';
+    const BACKEND = 'http://localhost:3700';
 
-      function generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
-      }
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
 
-      function openModal() {
-        const modal = document.getElementById('post-modal') as HTMLElement;
-        if (modal) modal.style.display = 'flex';
-      }
+    function openModal() {
+      const modal = document.getElementById('post-modal');
+      if (modal) modal.style.display = 'flex';
+    }
 
-      function closeModal() {
-        const modal = document.getElementById('post-modal') as HTMLElement;
-        if (modal) modal.style.display = 'none';
-        const form = document.getElementById('create-post-form') as HTMLFormElement;
-        if (form) form.reset();
-      }
+    function closeModal() {
+      const modal = document.getElementById('post-modal');
+      if (modal) modal.style.display = 'none';
+      const form = document.getElementById('create-post-form');
+      if (form) form.reset();
+      sessionStorage.removeItem('editingPostId');
+      const modalTitle = document.getElementById('modal-title');
+      if (modalTitle) modalTitle.textContent = 'Add New Post';
+    }
+
+    function openProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      const currentUsername = sessionStorage.getItem('currentUsername');
+      const editedProfile = JSON.parse(localStorage.getItem(`userProfile_${currentUsername}`) || '{}');
       
-      async function loadProfile() {
-        try {
-          const res = await fetch(`${BACKEND}/users/profile`, { credentials: 'include' });
-          const data = await res.json();
-          const profileDiv = document.getElementById('profile');
-          if (res.ok) {
-            // Store username in sessionStorage for use in loadUserBlogs
-            sessionStorage.setItem('currentUsername', data.username);
-            if (profileDiv) {
-              profileDiv.innerHTML = `
-                <div class="info-row">
-                  <span class="label">Usuario:</span>
-                  <span class="value">${data.username}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Nombre:</span>
-                  <span class="value">${data.firstName}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Apellido:</span>
-                  <span class="value">${data.lastName}</span>
-                </div>
-              `;
-              // Load blogs after profile is loaded
-              setTimeout(() => loadUserBlogs(), 100);
-            }
-          } else {
-            if (res.status === 401) {
-              window.location.href = '/login';
-              return;
-            }
-            if (profileDiv) profileDiv.innerHTML = `<p class="error">${data.message || 'Error'}</p>`;
-          }
-        } catch (err) {
-          const profileDiv = document.getElementById('profile');
-          if (profileDiv) profileDiv.innerHTML = '<p class="error">No se pudo conectar al backend.</p>';
-        }
+      const profileImageInput = document.getElementById('profile-image');
+      const profileOccupationInput = document.getElementById('profile-occupation');
+      
+      if (profileImageInput) profileImageInput.value = editedProfile.profileImage || '';
+      if (profileOccupationInput) profileOccupationInput.value = editedProfile.occupation || '';
+      
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      if (modal) modal.style.display = 'none';
+      const form = document.getElementById('edit-profile-form');
+      if (form) form.reset();
+    }
+
+    let allUserPosts = [];
+
+    function renderBlogGrid(postsToRender) {
+      const grid = document.getElementById('blog-grid');
+      if (!grid) return;
+      
+      if (!postsToRender || postsToRender.length === 0) {
+        grid.style.display = 'none';
+        grid.innerHTML = '';
+        return;
       }
 
-      async function logout() {
-        try {
-          await fetch(`${BACKEND}/users/logout`, { method: 'GET', credentials: 'include' });
-          sessionStorage.removeItem('currentUsername');
-          window.location.href = '/login';
-        } catch (err) {
-          alert('Error al cerrar sesión');
-        }
-      }
-
-      function loadUserBlogs() {
-        const currentUsername = sessionStorage.getItem('currentUsername');
-        if (!currentUsername) {
-          console.log('No current username in sessionStorage');
-          return;
-        }
-
-        // Get all posts from localStorage
-        const allPostsJSON = localStorage.getItem('blogPosts');
-        const allPosts: BlogPost[] = allPostsJSON ? JSON.parse(allPostsJSON) : [];
-        console.log('All posts:', allPosts);
-        
-        // Filter posts for current user
-        const userPosts = allPosts.filter((post: BlogPost) => post.username === currentUsername);
-        console.log('User posts:', userPosts);
-        
-        const grid = document.getElementById('blog-grid');
-        const emptyMessage = document.getElementById('empty-blog-message');
-        const createBtnContainer = document.getElementById('create-post-btn-container') as HTMLElement;
-
-        if (userPosts.length === 0) {
-          console.log('No posts, showing empty message');
-          if (grid) {
-            grid.style.display = 'none';
-            grid.innerHTML = '';
-          }
-          if (emptyMessage) emptyMessage.style.display = 'block';
-          if (createBtnContainer) createBtnContainer.style.display = 'none';
-          return;
-        }
-
-        console.log('Showing posts');
-        if (emptyMessage) emptyMessage.style.display = 'none';
-        if (createBtnContainer) createBtnContainer.style.display = 'block';
-        if (grid) {
-          grid.style.display = 'grid';
-          grid.innerHTML = userPosts.map((post: BlogPost) => `
-            <div class="blog-card">
-              <h3>${post.title}</h3>
-              <div class="meta">Publicado el ${new Date(post.createdAt).toLocaleDateString()}</div>
-              <p>${post.summary || 'Sin descripción.'}</p>
-              <div class="actions">
-                <a href="#" onclick="deletePost('${post.id}'); return false;">Eliminar</a>
+      grid.style.display = 'grid';
+      let html = '';
+      postsToRender.forEach((post, idx) => {
+        const published = new Date(post.createdAt).toLocaleDateString();
+        if (idx === 0) {
+          html += `
+            <div class="blog-card featured">
+              <div class="blog-card-header" style="background-image: url('${post.image || ''}');">
+                <div class="featured-meta">
+                  <div class="meta">${post.username} • ${published}</div>
+                </div>
+                <h3>${post.title}</h3>
+              </div>
+              <div class="blog-card-body">
+                <p>${post.summary || 'No description.'}</p>
+                <div class="actions">
+                  <button onclick="window.editPost('${post.id}')" class="edit-btn">Edit</button>
+                  <button onclick="window.deletePost('${post.id}')" class="delete-btn">Delete</button>
+                </div>
               </div>
             </div>
-          `).join('');
+          `;
+        } else {
+          html += `
+            <div class="blog-card small">
+              <div class="small-thumb" style="background-image: url('${post.image || ''}');"></div>
+              <div class="small-content">
+                <div class="meta">${post.username} • ${published}</div>
+                <h4>${post.title}</h4>
+                <p>${post.summary || ''}</p>
+                <div class="actions">
+                  <button onclick="window.editPost('${post.id}')" class="edit-btn">Edit</button>
+                  <button onclick="window.deletePost('${post.id}')" class="delete-btn">Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
         }
+      });
+      grid.innerHTML = html;
+    }
+
+    function showSuggestions(query) {
+      const suggestionsList = document.getElementById('suggestions-list');
+      if (!suggestionsList) return;
+
+      if (!query.trim()) {
+        suggestionsList.classList.remove('show');
+        suggestionsList.innerHTML = '';
+        return;
       }
 
-      function deletePost(postId: string) {
-        if (confirm('¿Estás seguro de que deseas eliminar este post?')) {
-          const allPostsJSON = localStorage.getItem('blogPosts');
-          const allPosts: BlogPost[] = allPostsJSON ? JSON.parse(allPostsJSON) : [];
-          
-          // Remove post with matching id
-          const updatedPosts = allPosts.filter((post: BlogPost) => post.id !== postId);
-          localStorage.setItem('blogPosts', JSON.stringify(updatedPosts));
-          
-          loadUserBlogs();
-        }
+      const q = query.toLowerCase();
+      const filtered = allUserPosts.filter(post =>
+        post.title.toLowerCase().startsWith(q) ||
+        (post.summary || '').toLowerCase().startsWith(q)
+      );
+
+      if (filtered.length === 0) {
+        suggestionsList.classList.remove('show');
+        suggestionsList.innerHTML = '';
+        return;
       }
 
-      // Initialize when DOM is ready
-      document.addEventListener('DOMContentLoaded', () => {
-        // Modal event listeners
-        const closeBtn = document.getElementById('close-modal');
-        const cancelBtn = document.getElementById('cancel-btn');
-        const createPostBtnEmpty = document.getElementById('create-post-btn-empty');
-        const createPostBtn = document.getElementById('create-post-btn');
-        const logoutBtn = document.getElementById('logout-btn');
+      suggestionsList.classList.add('show');
+      suggestionsList.innerHTML = filtered.map((post) => `
+        <li class="suggestion-item-header" onclick="window.selectSuggestion('${post.id}', '${post.title.replace(/'/g, "\\'")}')">
+          <strong>${post.title}</strong>
+          <span>${post.summary ? post.summary.substring(0, 50) + '...' : ''}</span>
+        </li>
+      `).join('');
+    }
 
-        closeBtn?.addEventListener('click', closeModal);
-        cancelBtn?.addEventListener('click', closeModal);
-        createPostBtnEmpty?.addEventListener('click', openModal);
-        createPostBtn?.addEventListener('click', openModal);
-        logoutBtn?.addEventListener('click', logout);
+    function handleSearch(e) {
+      const query = e.target.value;
+      if (!query.trim()) {
+        renderBlogGrid(allUserPosts);
+        const suggestionsList = document.getElementById('suggestions-list');
+        if (suggestionsList) {
+          suggestionsList.classList.remove('show');
+          suggestionsList.innerHTML = '';
+        }
+      } else {
+        showSuggestions(query);
+        const q = query.toLowerCase();
+        const filtered = allUserPosts.filter(post =>
+          post.title.toLowerCase().startsWith(q) ||
+          (post.summary || '').toLowerCase().startsWith(q)
+        );
+        renderBlogGrid(filtered);
+      }
+    }
 
-        // Close modal when clicking outside
-        const modal = document.getElementById('post-modal') as HTMLElement;
-        window.addEventListener('click', (event: Event) => {
-          if (event.target === modal) {
-            closeModal();
+    async function loadProfile() {
+      try {
+        const res = await fetch(`${BACKEND}/users/profile`, { credentials: 'include' });
+        const data = await res.json();
+        const profileDiv = document.getElementById('profile');
+        if (res.ok) {
+          sessionStorage.setItem('currentUsername', data.username);
+          // Load edited profile data from localStorage
+          const editedProfile = JSON.parse(localStorage.getItem(`userProfile_${data.username}`) || '{}');
+          if (profileDiv) {
+            profileDiv.innerHTML = `
+              <div style="margin-bottom: 1.5rem;">
+                ${editedProfile.profileImage ? `<img src="${editedProfile.profileImage}" alt="Profile" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;" />` : ''}
+              </div>
+              <div class="info-row">
+                <span class="label">Nombre:</span>
+                <span class="value">${data.firstName} ${data.lastName}</span>
+              </div>
+              ${editedProfile.occupation ? `<div class="info-row">
+                <span class="label">Ocupación:</span>
+                <span class="value">${editedProfile.occupation}</span>
+              </div>` : ''}
+            `;
+            setTimeout(() => loadUserBlogs(), 100);
           }
-        });
+        } else {
+          if (res.status === 401) { window.location.href = '/login'; return; }
+          if (profileDiv) profileDiv.innerHTML = `<p class="error">${data.message || 'Error'}</p>`;
+        }
+      } catch (err) {
+        const profileDiv = document.getElementById('profile');
+        if (profileDiv) profileDiv.innerHTML = '<p class="error">Error</p>';
+      }
+    }
 
-        // Form submission
-        const createPostForm = document.getElementById('create-post-form') as HTMLFormElement;
-        if (createPostForm) {
-          createPostForm.addEventListener('submit', (e: Event) => {
-            e.preventDefault();
-            const currentUsername = sessionStorage.getItem('currentUsername');
-            if (!currentUsername) {
-              alert('Por favor inicia sesión primero');
-              return;
+    async function logout() {
+      try {
+        await fetch(`${BACKEND}/users/logout`, { method: 'GET', credentials: 'include' });
+        sessionStorage.removeItem('currentUsername');
+        window.location.href = '/login';
+      } catch (err) {
+        alert('Error al cerrar sesión');
+      }
+    }
+
+    function loadUserBlogs() {
+      const currentUsername = sessionStorage.getItem('currentUsername');
+      if (!currentUsername) return;
+
+      const allPostsJSON = localStorage.getItem('blogPosts');
+      const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+      allUserPosts = allPosts.filter((post) => post.username === currentUsername);
+
+      const emptyMessage = document.getElementById('empty-blog-message');
+      const createBtnContainer = document.getElementById('create-post-btn-container');
+      const searchInput = document.getElementById('search-input');
+
+      if (!allUserPosts || allUserPosts.length === 0) {
+        renderBlogGrid([]);
+        if (emptyMessage) emptyMessage.style.display = 'block';
+        if (createBtnContainer) createBtnContainer.style.display = 'none';
+        if (searchInput) searchInput.style.display = 'none';
+        return;
+      }
+
+      if (emptyMessage) emptyMessage.style.display = 'none';
+      if (createBtnContainer) createBtnContainer.style.display = 'block';
+      if (searchInput) searchInput.style.display = 'block';
+      
+      renderBlogGrid(allUserPosts);
+    }
+
+    // Expose global functions so inline onclick handlers work
+    window.deletePost = function(postId) {
+      if (!confirm('¿Estás seguro de que deseas eliminar este post?')) return;
+      const allPostsJSON = localStorage.getItem('blogPosts');
+      const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+      const updatedPosts = allPosts.filter(p => p.id !== postId);
+      localStorage.setItem('blogPosts', JSON.stringify(updatedPosts));
+      loadUserBlogs();
+    };
+
+    window.editPost = function(postId) {
+      const allPostsJSON = localStorage.getItem('blogPosts');
+      const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+      const post = allPosts.find(p => p.id === postId);
+      if (!post) return;
+  const titleInput = document.getElementById('post-title');
+  const summaryInput = document.getElementById('post-summary');
+  const imageInput = document.getElementById('post-image');
+  const contentInput = document.getElementById('post-content');
+      const modalTitle = document.getElementById('modal-title');
+  if (titleInput) titleInput.value = post.title || '';
+  if (summaryInput) summaryInput.value = post.summary || '';
+  if (imageInput) imageInput.value = post.image || '';
+  if (contentInput) contentInput.value = post.content || '';
+      if (modalTitle) modalTitle.textContent = 'Edit Post';
+      sessionStorage.setItem('editingPostId', postId);
+      openModal();
+    };
+
+    window.selectSuggestion = function(postId, title) {
+      const searchInput = document.getElementById('search-input');
+      const suggestionsList = document.getElementById('suggestions-list');
+      
+      if (searchInput) searchInput.value = title;
+      if (suggestionsList) {
+        suggestionsList.classList.remove('show');
+        suggestionsList.innerHTML = '';
+      }
+      
+      // Open the post modal for the selected post (edit/view)
+      if (typeof window.editPost === 'function') {
+        // Give a small timeout to ensure UI updates (dropdown closed) before opening modal
+        setTimeout(() => {
+          window.editPost(postId);
+        }, 100);
+      } else {
+        // Fallback: render only the selected post in the grid
+        const filtered = allUserPosts.filter(p => p.id === postId);
+        renderBlogGrid(filtered);
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const closeBtn = document.getElementById('close-modal');
+      const cancelBtn = document.getElementById('cancel-btn');
+      const createPostBtnEmpty = document.getElementById('create-post-btn-empty');
+      const createPostBtn = document.getElementById('create-post-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      
+      const closeProfileModalBtn = document.getElementById('close-profile-modal');
+      const cancelProfileBtn = document.getElementById('cancel-profile-btn');
+      const editProfileBtn = document.getElementById('edit-profile-btn');
+
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+      if (createPostBtnEmpty) createPostBtnEmpty.addEventListener('click', openModal);
+      if (createPostBtn) createPostBtn.addEventListener('click', openModal);
+      if (logoutBtn) logoutBtn.addEventListener('click', logout);
+      
+      if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', closeProfileModal);
+      if (cancelProfileBtn) cancelProfileBtn.addEventListener('click', closeProfileModal);
+      if (editProfileBtn) editProfileBtn.addEventListener('click', openProfileModal);
+
+      // Search input listener
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) searchInput.addEventListener('input', handleSearch);
+      
+      // Close suggestions on document click
+      document.addEventListener('click', (e) => {
+        const searchContainer = document.querySelector('.search-container-header');
+        if (searchContainer && !searchContainer.contains(e.target)) {
+          const suggestionsList = document.getElementById('suggestions-list');
+          if (suggestionsList) {
+            suggestionsList.classList.remove('show');
+          }
+        }
+      });
+
+      const modal = document.getElementById('post-modal');
+      window.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+      
+      const profileModal = document.getElementById('profile-modal');
+      window.addEventListener('click', (event) => { if (event.target === profileModal) closeProfileModal(); });
+
+      const createPostForm = document.getElementById('create-post-form');
+      if (createPostForm) {
+        createPostForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const currentUsername = sessionStorage.getItem('currentUsername');
+          if (!currentUsername) { alert('Por favor inicia sesión primero'); return; }
+          const formData = new FormData(createPostForm);
+          const editingId = sessionStorage.getItem('editingPostId');
+          const allPostsJSON = localStorage.getItem('blogPosts');
+          const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+
+          const imageValue = String(formData.get('image') || '');
+          if (editingId) {
+            const idx = allPosts.findIndex(p => p.id === editingId);
+            if (idx !== -1) {
+              allPosts[idx].title = String(formData.get('title'));
+              allPosts[idx].summary = String(formData.get('summary') || '');
+              allPosts[idx].image = imageValue;
+              allPosts[idx].content = String(formData.get('content'));
+              allPosts[idx].createdAt = new Date().toISOString();
             }
-
-            const formData = new FormData(createPostForm);
-            
-            const newPost: BlogPost = {
+          } else {
+            const newPost = {
               id: generateId(),
               username: currentUsername,
               title: String(formData.get('title')),
               summary: String(formData.get('summary') || ''),
+              image: imageValue,
               content: String(formData.get('content')),
               createdAt: new Date().toISOString()
             };
-
-            // Get existing posts from localStorage
-            const allPostsJSON = localStorage.getItem('blogPosts');
-            const allPosts: BlogPost[] = allPostsJSON ? JSON.parse(allPostsJSON) : [];
-
-            // Add new post
             allPosts.push(newPost);
+          }
 
-            // Save back to localStorage
-            localStorage.setItem('blogPosts', JSON.stringify(allPosts));
+          localStorage.setItem('blogPosts', JSON.stringify(allPosts));
+          closeModal();
+          loadUserBlogs();
+        });
+      }
 
-            console.log('Post saved, posts in storage:', allPosts);
+      // Profile edit form handler
+      const editProfileForm = document.getElementById('edit-profile-form');
+      if (editProfileForm) {
+        editProfileForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const currentUsername = sessionStorage.getItem('currentUsername');
+          if (!currentUsername) return;
+          
+          const formData = new FormData(editProfileForm);
+          const profileData = {
+            profileImage: String(formData.get('profileImage') || ''),
+            occupation: String(formData.get('occupation') || '')
+          };
+          
+          localStorage.setItem(`userProfile_${currentUsername}`, JSON.stringify(profileData));
+          closeProfileModal();
+          loadProfile();
+        });
+      }
 
-            // Close modal and reload
-            closeModal();
-            loadUserBlogs();
-          });
-        }
-
-        // Load profile on page load
-        loadProfile();
-      });
-    </script>
+      loadProfile();
+    });
+  </script>
   </body>
 </html>

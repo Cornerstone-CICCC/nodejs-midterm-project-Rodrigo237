@@ -19,6 +19,16 @@
         <li><a href="/profile">Profile</a></li>
       </ul>
     </nav>
+
+    <div class="search-container-header">
+      <input 
+        type="text" 
+        id="search-input" 
+        class="search-input-header" 
+        placeholder="Search posts..." 
+      />
+      <ul id="suggestions-list" class="suggestions-list-header"></ul>
+    </div>
   </div>
 </header>
 
@@ -90,6 +100,86 @@
     color: #667eea;
   }
 
+  /* Search container styles */
+  .search-container-header {
+    position: relative;
+    flex: 1;
+    max-width: 300px;
+    margin: 0 2rem;
+  }
+
+  .search-input-header {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 6px;
+    color: white;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+
+  .search-input-header::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .search-input-header:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #667eea;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+  }
+
+  .suggestions-list-header {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    list-style: none;
+    margin: 0.5rem 0 0 0;
+    padding: 0;
+    color: white;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+  }
+
+  .suggestions-list-header.show {
+    display: block;
+  }
+
+  .suggestion-item-header {
+    padding: 0.75rem 1rem;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  }
+
+  .suggestion-item-header:hover {
+    background: rgba(102, 126, 234, 0.2);
+  }
+
+  .suggestion-item-header strong {
+    display: block;
+    color: white; /* accent color for suggestion title */
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .suggestion-item-header span {
+    display: block;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.85); /* lighter subtitle for better contrast */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   @media (max-width: 768px) {
     .header {
       padding: 0.75rem 1rem;
@@ -97,6 +187,13 @@
 
     .header-container {
       flex-wrap: wrap;
+    }
+
+    .search-container-header {
+      flex: 1 1 100%;
+      max-width: none;
+      margin: 0.5rem 0 0 0;
+      order: 3;
     }
 
     .navbar ul {
