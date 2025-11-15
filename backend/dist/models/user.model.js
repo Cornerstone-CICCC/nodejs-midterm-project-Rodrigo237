@@ -21,7 +21,7 @@ class UserModel {
     // Create a new user
     createUser(newUser) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { username, password, firstName, lastName } = newUser;
+            const { username, password, firstName, lastName, profileImage, occupation } = newUser;
             const foundIndex = this.users.findIndex(user => user.username.toLowerCase() === username.toLowerCase());
             if (foundIndex !== -1)
                 return false;
@@ -31,7 +31,9 @@ class UserModel {
                 username,
                 password: hashedPassword,
                 firstName,
-                lastName
+                lastName,
+                profileImage: profileImage || '',
+                occupation: occupation || ''
             });
             return true;
         });
@@ -55,6 +57,21 @@ class UserModel {
         if (!foundUser)
             return false;
         return foundUser;
+    }
+    // update user details
+    updateUserProfile(username, updates) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const foundIndex = this.users.findIndex(user => user.username.toLowerCase() === username.toLowerCase());
+            if (foundIndex === -1)
+                return null;
+            if (updates.profileImage !== undefined) {
+                this.users[foundIndex].profileImage = updates.profileImage;
+            }
+            if (updates.occupation !== undefined) {
+                this.users[foundIndex].occupation = updates.occupation;
+            }
+            return this.users[foundIndex];
+        });
     }
 }
 exports.default = new UserModel;

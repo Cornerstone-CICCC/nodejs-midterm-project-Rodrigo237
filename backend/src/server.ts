@@ -4,6 +4,7 @@ import cookieSession from 'cookie-session'
 import dotenv from 'dotenv'
 dotenv.config()
 import userRouter from './routes/user.routes'
+import blogPostRouter from './routes/blogPost.routes'
 
 // Create server
 const app = express()
@@ -28,7 +29,7 @@ app.use(express.json()) // Allow and parse JSON body
 
 // Routes
 app.use('/users', userRouter)
-
+app.use('/blogs', blogPostRouter)
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).json({
     message: "Invalid route!"

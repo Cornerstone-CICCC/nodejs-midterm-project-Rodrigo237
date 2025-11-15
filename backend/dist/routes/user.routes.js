@@ -9,6 +9,7 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const userRoutes = (0, express_1.Router)();
 userRoutes.post("/signup", auth_middleware_1.checkLogout, user_controller_1.default.signup);
 userRoutes.post("/login", auth_middleware_1.checkLogout, user_controller_1.default.login);
-userRoutes.get("/profile", auth_middleware_1.checkLogin, user_controller_1.default.getUserByUsername);
+userRoutes.get("/profile/details", auth_middleware_1.checkLogin, user_controller_1.default.getUserByUsername);
 userRoutes.get("/logout", auth_middleware_1.checkLogin, user_controller_1.default.logout);
+userRoutes.put("/profile", auth_middleware_1.checkLogin, user_controller_1.default.updateProfile);
 exports.default = userRoutes;

@@ -9,6 +9,7 @@ const cookie_session_1 = __importDefault(require("cookie-session"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
+const blogPost_routes_1 = __importDefault(require("./routes/blogPost.routes"));
 // Create server
 const app = (0, express_1.default)();
 // Middleware
@@ -30,6 +31,7 @@ app.use((0, cookie_session_1.default)({
 app.use(express_1.default.json()); // Allow and parse JSON body
 // Routes
 app.use('/users', user_routes_1.default);
+app.use('/blogs', blogPost_routes_1.default);
 app.use((req, res, next) => {
     res.status(404).json({
         message: "Invalid route!"

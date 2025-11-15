@@ -102,13 +102,9 @@ const title = 'Profile';
 
   <script>
     // @ts-nocheck
-
     const BACKEND = 'http://localhost:3700';
 
-    function generateId() {
-      return Date.now().toString(36) + Math.random().toString(36).slice(2);
-    }
-
+    // Modal functions (keep existing)
     function openModal() {
       const modal = document.getElementById('post-modal');
       if (modal) modal.style.display = 'flex';
@@ -126,16 +122,10 @@ const title = 'Profile';
 
     function openProfileModal() {
       const modal = document.getElementById('profile-modal');
-      const currentUsername = sessionStorage.getItem('currentUsername');
-      const editedProfile = JSON.parse(localStorage.getItem(`userProfile_${currentUsername}`) || '{}');
-      
-      const profileImageInput = document.getElementById('profile-image');
-      const profileOccupationInput = document.getElementById('profile-occupation');
-      
-      if (profileImageInput) profileImageInput.value = editedProfile.profileImage || '';
-      if (profileOccupationInput) profileOccupationInput.value = editedProfile.occupation || '';
-      
       if (modal) modal.style.display = 'flex';
+      
+      // Load current profile data from backend
+      loadCurrentProfileForEdit();
     }
 
     function closeProfileModal() {
@@ -147,6 +137,7 @@ const title = 'Profile';
 
     let allUserPosts = [];
 
+    // Render blog grid (keep existing structure but remove localStorage references)
     function renderBlogGrid(postsToRender) {
       const grid = document.getElementById('blog-grid');
       if (!grid) return;
@@ -199,95 +190,145 @@ const title = 'Profile';
       grid.innerHTML = html;
     }
 
-    function showSuggestions(query) {
-      const suggestionsList = document.getElementById('suggestions-list');
-      if (!suggestionsList) return;
-
-      if (!query.trim()) {
-        suggestionsList.classList.remove('show');
-        suggestionsList.innerHTML = '';
-        return;
-      }
-
-      const q = query.toLowerCase();
-      const filtered = allUserPosts.filter(post =>
-        post.title.toLowerCase().startsWith(q) ||
-        (post.summary || '').toLowerCase().startsWith(q)
-      );
-
-      if (filtered.length === 0) {
-        suggestionsList.classList.remove('show');
-        suggestionsList.innerHTML = '';
-        return;
-      }
-
-      suggestionsList.classList.add('show');
-      suggestionsList.innerHTML = filtered.map((post) => `
-        <li class="suggestion-item-header" onclick="window.selectSuggestion('${post.id}', '${post.title.replace(/'/g, "\\'")}')">
-          <strong>${post.title}</strong>
-          <span>${post.summary ? post.summary.substring(0, 50) + '...' : ''}</span>
-        </li>
-      `).join('');
-    }
-
-    function handleSearch(e) {
+    // Search functionality
+    async function handleSearch(e) {
       const query = e.target.value;
+      
       if (!query.trim()) {
-        renderBlogGrid(allUserPosts);
+        loadUserBlogs();
         const suggestionsList = document.getElementById('suggestions-list');
         if (suggestionsList) {
           suggestionsList.classList.remove('show');
           suggestionsList.innerHTML = '';
         }
-      } else {
-        showSuggestions(query);
-        const q = query.toLowerCase();
-        const filtered = allUserPosts.filter(post =>
-          post.title.toLowerCase().startsWith(q) ||
-          (post.summary || '').toLowerCase().startsWith(q)
-        );
-        renderBlogGrid(filtered);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/search?q=${encodeURIComponent(query)}`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          renderBlogGrid(data.posts);
+        }
+      } catch (error) {
+        console.error('Error searching posts:', error);
       }
     }
 
+    // Load current profile for editing
+    async function loadCurrentProfileForEdit() {
+      try {
+        const response = await fetch(`${BACKEND}/users/profile/details`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const profileImageInput = document.getElementById('profile-image');
+          const profileOccupationInput = document.getElementById('profile-occupation');
+          if (profileImageInput) profileImageInput.value = data.profileImage || '';
+          if (profileOccupationInput) profileOccupationInput.value = data.occupation || '';
+
+        }
+      } catch (error) {
+        console.error('Error loading profile for edit:', error);
+      }
+    }
+
+    // Load profile from backend
     async function loadProfile() {
       try {
-        const res = await fetch(`${BACKEND}/users/profile`, { credentials: 'include' });
-        const data = await res.json();
+        const response = await fetch(`${BACKEND}/users/profile/details`, {
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
         const profileDiv = document.getElementById('profile');
-        if (res.ok) {
+        
+        if (response.ok) {
           sessionStorage.setItem('currentUsername', data.username);
-          // Load edited profile data from localStorage
-          const editedProfile = JSON.parse(localStorage.getItem(`userProfile_${data.username}`) || '{}');
+          
           if (profileDiv) {
             profileDiv.innerHTML = `
               <div style="margin-bottom: 1.5rem;">
-                ${editedProfile.profileImage ? `<img src="${editedProfile.profileImage}" alt="Profile" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;" />` : ''}
+                ${data.profileImage ? `<img src="${data.profileImage}" alt="Profile" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;" />` : ''}
               </div>
               <div class="info-row">
                 <span class="label">Nombre:</span>
                 <span class="value">${data.firstName} ${data.lastName}</span>
               </div>
-              ${editedProfile.occupation ? `<div class="info-row">
+              ${data.occupation ? `<div class="info-row">
                 <span class="label">Ocupación:</span>
-                <span class="value">${editedProfile.occupation}</span>
+                <span class="value">${data.occupation}</span>
               </div>` : ''}
             `;
             setTimeout(() => loadUserBlogs(), 100);
           }
         } else {
-          if (res.status === 401) { window.location.href = '/login'; return; }
+          if (response.status === 401) { 
+            window.location.href = '/login'; 
+            return; 
+          }
           if (profileDiv) profileDiv.innerHTML = `<p class="error">${data.message || 'Error'}</p>`;
         }
       } catch (err) {
         const profileDiv = document.getElementById('profile');
-        if (profileDiv) profileDiv.innerHTML = '<p class="error">Error</p>';
+        if (profileDiv) profileDiv.innerHTML = '<p class="error">Error loading profile</p>';
       }
     }
 
+    // Load user blogs from backend
+    async function loadUserBlogs() {
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/my-posts`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+          }
+          throw new Error('Failed to load posts');
+        }
+        
+        const data = await response.json();
+        allUserPosts = data.posts || [];
+
+        const emptyMessage = document.getElementById('empty-blog-message');
+        const createBtnContainer = document.getElementById('create-post-btn-container');
+        const searchInput = document.getElementById('search-input');
+
+        if (!allUserPosts || allUserPosts.length === 0) {
+          renderBlogGrid([]);
+          if (emptyMessage) emptyMessage.style.display = 'block';
+          if (createBtnContainer) createBtnContainer.style.display = 'none';
+          if (searchInput) searchInput.style.display = 'none';
+          return;
+        }
+
+        if (emptyMessage) emptyMessage.style.display = 'none';
+        if (createBtnContainer) createBtnContainer.style.display = 'block';
+        if (searchInput) searchInput.style.display = 'block';
+        
+        renderBlogGrid(allUserPosts);
+      } catch (error) {
+        console.error('Error loading user blogs:', error);
+        const emptyMessage = document.getElementById('empty-blog-message');
+        if (emptyMessage) emptyMessage.style.display = 'block';
+      }
+    }
+
+    // Logout function
     async function logout() {
       try {
-        await fetch(`${BACKEND}/users/logout`, { method: 'GET', credentials: 'include' });
+        await fetch(`${BACKEND}/users/logout`, { 
+          method: 'GET', 
+          credentials: 'include' 
+        });
         sessionStorage.removeItem('currentUsername');
         window.location.href = '/login';
       } catch (err) {
@@ -295,86 +336,65 @@ const title = 'Profile';
       }
     }
 
-    function loadUserBlogs() {
-      const currentUsername = sessionStorage.getItem('currentUsername');
-      if (!currentUsername) return;
-
-      const allPostsJSON = localStorage.getItem('blogPosts');
-      const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
-      allUserPosts = allPosts.filter((post) => post.username === currentUsername);
-
-      const emptyMessage = document.getElementById('empty-blog-message');
-      const createBtnContainer = document.getElementById('create-post-btn-container');
-      const searchInput = document.getElementById('search-input');
-
-      if (!allUserPosts || allUserPosts.length === 0) {
-        renderBlogGrid([]);
-        if (emptyMessage) emptyMessage.style.display = 'block';
-        if (createBtnContainer) createBtnContainer.style.display = 'none';
-        if (searchInput) searchInput.style.display = 'none';
-        return;
-      }
-
-      if (emptyMessage) emptyMessage.style.display = 'none';
-      if (createBtnContainer) createBtnContainer.style.display = 'block';
-      if (searchInput) searchInput.style.display = 'block';
-      
-      renderBlogGrid(allUserPosts);
-    }
-
-    // Expose global functions so inline onclick handlers work
-    window.deletePost = function(postId) {
+    // Global functions for post operations
+    window.deletePost = async function(postId) {
       if (!confirm('¿Estás seguro de que deseas eliminar este post?')) return;
-      const allPostsJSON = localStorage.getItem('blogPosts');
-      const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
-      const updatedPosts = allPosts.filter(p => p.id !== postId);
-      localStorage.setItem('blogPosts', JSON.stringify(updatedPosts));
-      loadUserBlogs();
-    };
-
-    window.editPost = function(postId) {
-      const allPostsJSON = localStorage.getItem('blogPosts');
-      const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
-      const post = allPosts.find(p => p.id === postId);
-      if (!post) return;
-  const titleInput = document.getElementById('post-title');
-  const summaryInput = document.getElementById('post-summary');
-  const imageInput = document.getElementById('post-image');
-  const contentInput = document.getElementById('post-content');
-      const modalTitle = document.getElementById('modal-title');
-  if (titleInput) titleInput.value = post.title || '';
-  if (summaryInput) summaryInput.value = post.summary || '';
-  if (imageInput) imageInput.value = post.image || '';
-  if (contentInput) contentInput.value = post.content || '';
-      if (modalTitle) modalTitle.textContent = 'Edit Post';
-      sessionStorage.setItem('editingPostId', postId);
-      openModal();
-    };
-
-    window.selectSuggestion = function(postId, title) {
-      const searchInput = document.getElementById('search-input');
-      const suggestionsList = document.getElementById('suggestions-list');
       
-      if (searchInput) searchInput.value = title;
-      if (suggestionsList) {
-        suggestionsList.classList.remove('show');
-        suggestionsList.innerHTML = '';
-      }
-      
-      // Open the post modal for the selected post (edit/view)
-      if (typeof window.editPost === 'function') {
-        // Give a small timeout to ensure UI updates (dropdown closed) before opening modal
-        setTimeout(() => {
-          window.editPost(postId);
-        }, 100);
-      } else {
-        // Fallback: render only the selected post in the grid
-        const filtered = allUserPosts.filter(p => p.id === postId);
-        renderBlogGrid(filtered);
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/${postId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          loadUserBlogs();
+        } else {
+          const data = await response.json();
+          alert(data.message || 'Error deleting post');
+        }
+      } catch (error) {
+        alert('Error deleting post');
       }
     };
 
+    window.editPost = async function(postId) {
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/my-posts`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const post = data.posts.find(p => p.id === postId);
+          
+          if (!post) {
+            alert('Post not found');
+            return;
+          }
+
+          const titleInput = document.getElementById('post-title');
+          const summaryInput = document.getElementById('post-summary');
+          const imageInput = document.getElementById('post-image');
+          const contentInput = document.getElementById('post-content');
+          const modalTitle = document.getElementById('modal-title');
+          
+          if (titleInput) titleInput.value = post.title || '';
+          if (summaryInput) summaryInput.value = post.summary || '';
+          if (imageInput) imageInput.value = post.image || '';
+          if (contentInput) contentInput.value = post.content || '';
+          if (modalTitle) modalTitle.textContent = 'Edit Post';
+          
+          sessionStorage.setItem('editingPostId', postId);
+          openModal();
+        }
+      } catch (error) {
+        alert('Error loading post for editing');
+      }
+    };
+
+    // Event listeners
     document.addEventListener('DOMContentLoaded', () => {
+      // Modal event listeners (keep existing)
       const closeBtn = document.getElementById('close-modal');
       const cancelBtn = document.getElementById('cancel-btn');
       const createPostBtnEmpty = document.getElementById('create-post-btn-empty');
@@ -398,84 +418,118 @@ const title = 'Profile';
       // Search input listener
       const searchInput = document.getElementById('search-input');
       if (searchInput) searchInput.addEventListener('input', handleSearch);
-      
-      // Close suggestions on document click
-      document.addEventListener('click', (e) => {
-        const searchContainer = document.querySelector('.search-container-header');
-        if (searchContainer && !searchContainer.contains(e.target)) {
-          const suggestionsList = document.getElementById('suggestions-list');
-          if (suggestionsList) {
-            suggestionsList.classList.remove('show');
-          }
-        }
-      });
 
+      // Modal background click handlers (keep existing)
       const modal = document.getElementById('post-modal');
-      window.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
-      
       const profileModal = document.getElementById('profile-modal');
-      window.addEventListener('click', (event) => { if (event.target === profileModal) closeProfileModal(); });
+      
+      if (modal) {
+        window.addEventListener('click', (event) => { 
+          if (event.target === modal) closeModal(); 
+        });
+      }
+      
+      if (profileModal) {
+        window.addEventListener('click', (event) => { 
+          if (event.target === profileModal) closeProfileModal(); 
+        });
+      }
 
+      // Create/Update post form handler
       const createPostForm = document.getElementById('create-post-form');
       if (createPostForm) {
-        createPostForm.addEventListener('submit', (e) => {
+        createPostForm.addEventListener('submit', async (e) => {
           e.preventDefault();
+          
           const currentUsername = sessionStorage.getItem('currentUsername');
-          if (!currentUsername) { alert('Por favor inicia sesión primero'); return; }
+          if (!currentUsername) { 
+            alert('Por favor inicia sesión primero'); 
+            return; 
+          }
+          
           const formData = new FormData(createPostForm);
           const editingId = sessionStorage.getItem('editingPostId');
-          const allPostsJSON = localStorage.getItem('blogPosts');
-          const allPosts = allPostsJSON ? JSON.parse(allPostsJSON) : [];
+          
+          const postData = {
+            title: String(formData.get('title')),
+            summary: String(formData.get('summary') || ''),
+            image: String(formData.get('image') || ''),
+            content: String(formData.get('content'))
+          };
 
-          const imageValue = String(formData.get('image') || '');
-          if (editingId) {
-            const idx = allPosts.findIndex(p => p.id === editingId);
-            if (idx !== -1) {
-              allPosts[idx].title = String(formData.get('title'));
-              allPosts[idx].summary = String(formData.get('summary') || '');
-              allPosts[idx].image = imageValue;
-              allPosts[idx].content = String(formData.get('content'));
-              allPosts[idx].createdAt = new Date().toISOString();
+          try {
+            let response;
+            if (editingId) {
+              // Update existing post
+              response = await fetch(`${BACKEND}/blogs/posts/${editingId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(postData)
+              });
+            } else {
+              // Create new post
+              response = await fetch(`${BACKEND}/blogs/posts`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(postData)
+              });
             }
-          } else {
-            const newPost = {
-              id: generateId(),
-              username: currentUsername,
-              title: String(formData.get('title')),
-              summary: String(formData.get('summary') || ''),
-              image: imageValue,
-              content: String(formData.get('content')),
-              createdAt: new Date().toISOString()
-            };
-            allPosts.push(newPost);
-          }
 
-          localStorage.setItem('blogPosts', JSON.stringify(allPosts));
-          closeModal();
-          loadUserBlogs();
+            if (response.ok) {
+              closeModal();
+              loadUserBlogs();
+            } else {
+              const errorData = await response.json();
+              alert(errorData.message || 'Error saving post');
+            }
+          } catch (error) {
+            alert('Error saving post');
+          }
         });
       }
 
       // Profile edit form handler
       const editProfileForm = document.getElementById('edit-profile-form');
       if (editProfileForm) {
-        editProfileForm.addEventListener('submit', (e) => {
+        editProfileForm.addEventListener('submit', async (e) => {
           e.preventDefault();
-          const currentUsername = sessionStorage.getItem('currentUsername');
-          if (!currentUsername) return;
           
           const formData = new FormData(editProfileForm);
           const profileData = {
             profileImage: String(formData.get('profileImage') || ''),
             occupation: String(formData.get('occupation') || '')
           };
-          
-          localStorage.setItem(`userProfile_${currentUsername}`, JSON.stringify(profileData));
-          closeProfileModal();
-          loadProfile();
+
+          try {
+            const response = await fetch(`${BACKEND}/users/profile`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify(profileData)
+            });
+
+            if (response.ok) {
+              closeProfileModal();
+              loadProfile();
+            } else {
+              const errorData = await response.json();
+              alert(errorData.message || 'Error updating profile');
+            }
+          } catch (error) {
+            alert('Error updating profile');
+          }
         });
       }
 
+      // Initial load
       loadProfile();
     });
   </script>

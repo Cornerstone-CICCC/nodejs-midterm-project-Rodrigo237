@@ -39,6 +39,16 @@ const title = 'Sign Up';
 						<input type="text" id="lastName" name="lastName" placeholder="Last name" required />
 					</div>
 
+                    <div class="form-group">
+                        <label for="profileImage">Profile Image URL:</label>
+                        <input type="text" id="profileImage" name="profileImage" placeholder="Profile Image URL" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="occupation">Occupation:</label>
+                        <input type="text" id="occupation" name="occupation" placeholder="Occupation" />
+                    </div>
+
 					<button type="submit" class="btn-submit">Create account</button>
 
 					<p class="form-footer">Already have an account? <a href="/login">Log in</a></p>
@@ -56,12 +66,14 @@ const title = 'Sign Up';
 					const password = String(formData.get('password') || '').trim();
 					const firstName = String(formData.get('firstName') || '').trim();
 					const lastName = String(formData.get('lastName') || '').trim();
+                    const profileImage = String(formData.get('profileImage') || '').trim();
+                    const occupation = String(formData.get('occupation') || '').trim();
 
 					try {
 						const res = await fetch('http://localhost:3700/users/signup', {
 							method: "POST",
 							headers: { "Content-type": "application/json" },
-							body: JSON.stringify({ username, password, firstName, lastName })
+							body: JSON.stringify({ username, password, firstName, lastName, profileImage, occupation })
 						});
 						const data = await res.json().catch(() => ({}));
 						if (res.ok) {

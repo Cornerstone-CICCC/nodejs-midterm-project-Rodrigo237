@@ -7,7 +7,9 @@ const userRoutes = Router();
 
 userRoutes.post("/signup",checkLogout,userController.signup);
 userRoutes.post("/login",checkLogout,userController.login);
-userRoutes.get("/profile",checkLogin,userController.getUserByUsername);
+userRoutes.get("/profile/details",checkLogin,userController.getUserByUsername);
 userRoutes.get("/logout",checkLogin,userController.logout);
+userRoutes.put("/profile",checkLogin,userController.updateProfile);
+
 
 export default userRoutes;

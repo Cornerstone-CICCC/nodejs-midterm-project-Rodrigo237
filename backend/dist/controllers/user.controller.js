@@ -22,12 +22,12 @@ const user_model_1 = __importDefault(require("../models/user.model"));
  * @returns {void} Respond with success or error message
  */
 const signup = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password, firstName, lastName } = req.body;
-    if (!username.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
+    const { username, password, firstName, lastName, profileImage, occupation } = req.body;
+    if (!username.trim() || !password.trim() || !firstName.trim() || !lastName.trim() || (profileImage !== undefined && !profileImage.trim()) || (occupation !== undefined && !occupation.trim())) {
         res.status(500).json({ message: "All fields are required" });
         return;
     }
-    const isSuccess = yield user_model_1.default.createUser({ username, password, firstName, lastName });
+    const isSuccess = yield user_model_1.default.createUser({ username, password, firstName, lastName, profileImage, occupation });
     if (!isSuccess) {
         res.status(500).json({ message: "Username already exists" });
         return;
@@ -78,7 +78,7 @@ const getUserByUsername = (req, res) => {
         res.status(404).json({ message: "User not found" });
         return;
     }
-    res.status(200).json({ username: user.username, firstName: user.firstName, lastName: user.lastName });
+    res.status(200).json({ username: user.username, firstName: user.firstName, lastName: user.lastName, profileImage: user.profileImage, occupation: user.occupation });
 };
 /**
  * Log out the current user
@@ -94,9 +94,48 @@ const logout = (req, res) => {
     }
     res.status(200).json({ message: "Logout successful" });
 };
+/**
+ * Update user profile details
+ *
+ * @route PUT /profile
+ * @param {Request<{},{},Partial<Omit<User,'id' | 'username'>>>} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {void} Respond with success or error message
+ */
+const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!req.session || !req.session.username) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+    const { profileImage, occupation } = req.body;
+    try {
+        const updatedUser = yield user_model_1.default.updateUserProfile(req.session.username, {
+            profileImage,
+            occupation
+        });
+        if (!updatedUser) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+        res.status(200).json({
+            message: "Profile updated successfully",
+            user: {
+                username: updatedUser.username,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                profileImage: updatedUser.profileImage,
+                occupation: updatedUser.occupation
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: "Error updating profile" });
+    }
+});
 exports.default = {
     signup,
     login,
     getUserByUsername,
-    logout
+    logout,
+    updateProfile
 };
