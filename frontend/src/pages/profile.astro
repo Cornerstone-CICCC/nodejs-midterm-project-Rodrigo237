@@ -1,0 +1,585 @@
+---
+import '../styles/global.css';
+import '../styles/profile.css';
+import Header from '../components/Header.astro';
+
+const title = 'Profile';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <Header />
+
+    <div class="profile-container">
+      <div class="profile-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h1>My Profile</h1>
+          <button id="edit-profile-btn" class="btn-edit-profile">Edit Profile</button>
+        </div>
+        <div id="profile" class="profile-info">Loading ...</div>
+      <div class="blog-section">
+        <h2>My Posts</h2>
+        <div id="blog-grid" class="blog-grid"></div>
+      <div id="empty-blog-message" class="empty-blog">
+        <p>No Posts yet.</p>
+        <button id="create-post-btn-empty" class="btn-create">
+        <span class="icon">+</span> Add New Post</button>
+      </div>
+        <div style="text-align: center; margin-top: 20px;" id="create-post-btn-container">
+           <button id="create-post-btn" class="btn-create">
+                    <span class="icon">+</span> Add New Post</button>
+
+        </div>
+    </div>
+    <!-- Modal for editing profile -->
+    <div id="profile-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Edit Profile</h2>
+          <button id="close-profile-modal" class="close-btn">&times;</button>
+        </div>
+        <form id="edit-profile-form" class="modal-form">
+          <div class="form-group">
+            <label for="profile-image">Profile Image URL (optional):</label>
+            <input type="text" id="profile-image" name="profileImage" placeholder="https://example.com/image.jpg" />
+          </div>
+          <div class="form-group">
+            <label for="profile-occupation">Occupation (optional):</label>
+            <input type="text" id="profile-occupation" name="occupation" placeholder="Your occupation" />
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn-submit">Save Changes</button>
+            <button type="button" id="cancel-profile-btn" class="btn-cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!-- Modal for creating posts -->
+    <div id="post-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">Add New Post</h2>
+          <button id="close-modal" class="close-btn">&times;</button>
+        </div>
+        <form id="create-post-form" class="modal-form">
+          <div class="form-group">
+            <label for="post-title">Title:</label>
+            <input type="text" id="post-title" name="title" placeholder="Post title" required />
+          </div>
+          <div class="form-group">
+            <label for="post-summary">Resume:</label>
+            <textarea id="post-summary" name="summary" placeholder="Quite resume" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="post-image">Image URL (optional):</label>
+            <input type="text" id="post-image" name="image" placeholder="https://example.com/image.jpg" />
+          </div>
+          <div class="form-group">
+            <label for="post-content">Content:</label>
+            <textarea id="post-content" name="content" placeholder="Write the content..." rows="8" required></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn-submit">Publish</button>
+            <button type="button" id="cancel-btn" class="btn-cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="btn-logout-container">
+        <button id="logout-btn" class="btn-logout">Log out</button>
+    </div>
+</div>
+
+    
+
+    </div>
+    
+
+  <script>
+    // @ts-nocheck
+    const BACKEND = 'http://localhost:3700';
+
+    // Modal functions (keep existing)
+    function openModal() {
+      const modal = document.getElementById('post-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('post-modal');
+      if (modal) modal.style.display = 'none';
+      const form = document.getElementById('create-post-form');
+      if (form) form.reset();
+      sessionStorage.removeItem('editingPostId');
+      const modalTitle = document.getElementById('modal-title');
+      if (modalTitle) modalTitle.textContent = 'Add New Post';
+    }
+
+    function openProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      if (modal) modal.style.display = 'flex';
+      
+      // Load current profile data from backend
+      loadCurrentProfileForEdit();
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      if (modal) modal.style.display = 'none';
+      const form = document.getElementById('edit-profile-form');
+      if (form) form.reset();
+    }
+
+    let allUserPosts = [];
+
+    // Render blog grid (keep existing structure but remove localStorage references)
+    function renderBlogGrid(postsToRender) {
+      const grid = document.getElementById('blog-grid');
+      if (!grid) return;
+      
+      if (!postsToRender || postsToRender.length === 0) {
+        grid.style.display = 'none';
+        grid.innerHTML = '';
+        return;
+      }
+
+      grid.style.display = 'grid';
+      let html = '';
+      postsToRender.forEach((post, idx) => {
+        const published = new Date(post.createdAt).toLocaleDateString();
+        if (idx === 0) {
+          html += `
+            <div class="blog-card featured">
+              <div class="blog-card-header" style="background-image: url('${post.image || ''}');">
+                <div class="featured-meta">
+                  <div class="meta">${post.username} • ${published}</div>
+                </div>
+                <h3>${post.title}</h3>
+              </div>
+              <div class="blog-card-body">
+                <p>${post.summary || 'No description.'}</p>
+                <div class="actions">
+                  <button onclick="window.editPost('${post.id}')" class="edit-btn">Edit</button>
+                  <button onclick="window.deletePost('${post.id}')" class="delete-btn">Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="blog-card small">
+              <div class="small-thumb" style="background-image: url('${post.image || ''}');"></div>
+              <div class="small-content">
+                <div class="meta">${post.username} • ${published}</div>
+                <h4>${post.title}</h4>
+                <p>${post.summary || ''}</p>
+                <div class="actions">
+                  <button onclick="window.editPost('${post.id}')" class="edit-btn">Edit</button>
+                  <button onclick="window.deletePost('${post.id}')" class="delete-btn">Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      });
+      grid.innerHTML = html;
+    }
+
+    // Search functionality
+    async function handleSearch(e) {
+      const query = e.target.value;
+      
+      if (!query.trim()) {
+        loadUserBlogs();
+        const suggestionsList = document.getElementById('suggestions-list');
+        if (suggestionsList) {
+          suggestionsList.classList.remove('show');
+          suggestionsList.innerHTML = '';
+        }
+        return;
+      }
+
+      showSuggestions(query);
+
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/search?q=${encodeURIComponent(query)}`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          renderBlogGrid(data.posts);
+        }
+      } catch (error) {
+        console.error('Error searching posts:', error);
+      }
+    }
+
+    function showSuggestions(query) {
+  const suggestionsList = document.getElementById('suggestions-list');
+  if (!suggestionsList) return;
+
+  if (!query.trim()) {
+    suggestionsList.classList.remove('show');
+    suggestionsList.innerHTML = '';
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const filtered = allUserPosts.filter(post =>
+    post.title.toLowerCase().includes(q) ||
+    (post.summary || '').toLowerCase().includes(q)
+  );
+
+  if (filtered.length === 0) {
+    suggestionsList.classList.remove('show');
+    suggestionsList.innerHTML = '';
+    return;
+  }
+
+  suggestionsList.classList.add('show');
+  suggestionsList.innerHTML = filtered.map((post) => `
+    <li class="suggestion-item-header" onclick="window.selectSuggestion('${post.id}', '${post.title.replace(/'/g, "\\'")}')">
+      <strong>${post.title}</strong>
+      <span>${post.summary ? post.summary.substring(0, 50) + '...' : 'No description'}</span>
+    </li>
+  `).join('');
+}
+
+    // Load current profile for editing
+    async function loadCurrentProfileForEdit() {
+      try {
+        const response = await fetch(`${BACKEND}/users/profile/details`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const profileImageInput = document.getElementById('profile-image');
+          const profileOccupationInput = document.getElementById('profile-occupation');
+          if (profileImageInput) profileImageInput.value = data.profileImage || '';
+          if (profileOccupationInput) profileOccupationInput.value = data.occupation || '';
+
+        }
+      } catch (error) {
+        console.error('Error loading profile for edit:', error);
+      }
+    }
+
+    window.selectSuggestion = function(postId, title) {
+        const searchInput = document.getElementById('search-input');
+        const suggestionsList = document.getElementById('suggestions-list');
+        
+        if (searchInput) searchInput.value = title;
+        if (suggestionsList) {
+            suggestionsList.classList.remove('show');
+            suggestionsList.innerHTML = '';
+        }
+        
+        // Filter post by ID and render
+        const filtered = allUserPosts.filter(p => p.id === postId);
+        renderBlogGrid(filtered);
+    };
+
+    // Load profile from backend
+    async function loadProfile() {
+      try {
+        const response = await fetch(`${BACKEND}/users/profile/details`, {
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        const profileDiv = document.getElementById('profile');
+        
+        if (response.ok) {
+          sessionStorage.setItem('currentUsername', data.username);
+          
+          if (profileDiv) {
+            profileDiv.innerHTML = `
+              <div style="margin-bottom: 1.5rem;">
+                ${data.profileImage ? `<img src="${data.profileImage}" alt="Profile" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;" />` : ''}
+              </div>
+              <div class="info-row">
+                <span class="label">Name:</span>
+                <span class="value">${data.firstName} ${data.lastName}</span>
+              </div>
+              ${data.occupation ? `<div class="info-row">
+                <span class="label">Occupation:</span>
+                <span class="value">${data.occupation}</span>
+              </div>` : ''}
+            `;
+            setTimeout(() => loadUserBlogs(), 100);
+          }
+        } else {
+          if (response.status === 401) { 
+            window.location.href = '/login'; 
+            return; 
+          }
+          if (profileDiv) profileDiv.innerHTML = `<p class="error">${data.message || 'Error'}</p>`;
+        }
+      } catch (err) {
+        const profileDiv = document.getElementById('profile');
+        if (profileDiv) profileDiv.innerHTML = '<p class="error">Error loading profile</p>';
+      }
+    }
+
+    // Load user blogs from backend
+    async function loadUserBlogs() {
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/my-posts`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+          }
+          throw new Error('Failed to load posts');
+        }
+        
+        const data = await response.json();
+        allUserPosts = data.posts || [];
+
+        const emptyMessage = document.getElementById('empty-blog-message');
+        const createBtnContainer = document.getElementById('create-post-btn-container');
+        const searchInput = document.getElementById('search-input');
+
+        if (!allUserPosts || allUserPosts.length === 0) {
+          renderBlogGrid([]);
+          if (emptyMessage) emptyMessage.style.display = 'block';
+          if (createBtnContainer) createBtnContainer.style.display = 'none';
+          if (searchInput) searchInput.style.display = 'none';
+          return;
+        }
+
+        if (emptyMessage) emptyMessage.style.display = 'none';
+        if (createBtnContainer) createBtnContainer.style.display = 'block';
+        if (searchInput) searchInput.style.display = 'block';
+        
+        renderBlogGrid(allUserPosts);
+      } catch (error) {
+        console.error('Error loading user blogs:', error);
+        const emptyMessage = document.getElementById('empty-blog-message');
+        if (emptyMessage) emptyMessage.style.display = 'block';
+      }
+    }
+
+    // Logout function
+    async function logout() {
+      try {
+        await fetch(`${BACKEND}/users/logout`, { 
+          method: 'GET', 
+          credentials: 'include' 
+        });
+        sessionStorage.removeItem('currentUsername');
+        window.location.href = '/login';
+      } catch (err) {
+        alert('Error');
+      }
+    }
+
+    // Global functions for post operations
+    window.deletePost = async function(postId) {
+      if (!confirm('Are you sure you want to delete this post?')) return;
+      
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/${postId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          loadUserBlogs();
+        } else {
+          const data = await response.json();
+          alert(data.message || 'Error deleting post');
+        }
+      } catch (error) {
+        alert('Error deleting post');
+      }
+    };
+
+    window.editPost = async function(postId) {
+      try {
+        const response = await fetch(`${BACKEND}/blogs/posts/my-posts`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const post = data.posts.find(p => p.id === postId);
+          
+          if (!post) {
+            alert('Post not found');
+            return;
+          }
+
+          const titleInput = document.getElementById('post-title');
+          const summaryInput = document.getElementById('post-summary');
+          const imageInput = document.getElementById('post-image');
+          const contentInput = document.getElementById('post-content');
+          const modalTitle = document.getElementById('modal-title');
+          
+          if (titleInput) titleInput.value = post.title || '';
+          if (summaryInput) summaryInput.value = post.summary || '';
+          if (imageInput) imageInput.value = post.image || '';
+          if (contentInput) contentInput.value = post.content || '';
+          if (modalTitle) modalTitle.textContent = 'Edit Post';
+          
+          sessionStorage.setItem('editingPostId', postId);
+          openModal();
+        }
+      } catch (error) {
+        alert('Error loading post for editing');
+      }
+    };
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Modal event listeners (keep existing)
+      const closeBtn = document.getElementById('close-modal');
+      const cancelBtn = document.getElementById('cancel-btn');
+      const createPostBtnEmpty = document.getElementById('create-post-btn-empty');
+      const createPostBtn = document.getElementById('create-post-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      
+      const closeProfileModalBtn = document.getElementById('close-profile-modal');
+      const cancelProfileBtn = document.getElementById('cancel-profile-btn');
+      const editProfileBtn = document.getElementById('edit-profile-btn');
+
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+      if (createPostBtnEmpty) createPostBtnEmpty.addEventListener('click', openModal);
+      if (createPostBtn) createPostBtn.addEventListener('click', openModal);
+      if (logoutBtn) logoutBtn.addEventListener('click', logout);
+      
+      if (closeProfileModalBtn) closeProfileModalBtn.addEventListener('click', closeProfileModal);
+      if (cancelProfileBtn) cancelProfileBtn.addEventListener('click', closeProfileModal);
+      if (editProfileBtn) editProfileBtn.addEventListener('click', openProfileModal);
+
+      // Search input listener
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) searchInput.addEventListener('input', handleSearch);
+
+      // Modal background click handlers (keep existing)
+      const modal = document.getElementById('post-modal');
+      const profileModal = document.getElementById('profile-modal');
+      
+      if (modal) {
+        window.addEventListener('click', (event) => { 
+          if (event.target === modal) closeModal(); 
+        });
+      }
+      
+      if (profileModal) {
+        window.addEventListener('click', (event) => { 
+          if (event.target === profileModal) closeProfileModal(); 
+        });
+      }
+
+      // Create/Update post form handler
+      const createPostForm = document.getElementById('create-post-form');
+      if (createPostForm) {
+        createPostForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const currentUsername = sessionStorage.getItem('currentUsername');
+          if (!currentUsername) { 
+            alert('Por favor inicia sesión primero'); 
+            return; 
+          }
+          
+          const formData = new FormData(createPostForm);
+          const editingId = sessionStorage.getItem('editingPostId');
+          
+          const postData = {
+            title: String(formData.get('title')),
+            summary: String(formData.get('summary') || ''),
+            image: String(formData.get('image') || ''),
+            content: String(formData.get('content'))
+          };
+
+          try {
+            let response;
+            if (editingId) {
+              // Update existing post
+              response = await fetch(`${BACKEND}/blogs/posts/${editingId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(postData)
+              });
+            } else {
+              // Create new post
+              response = await fetch(`${BACKEND}/blogs/posts`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(postData)
+              });
+            }
+
+            if (response.ok) {
+              closeModal();
+              loadUserBlogs();
+            } else {
+              const errorData = await response.json();
+              alert(errorData.message || 'Error saving post');
+            }
+          } catch (error) {
+            alert('Error saving post');
+          }
+        });
+      }
+
+      // Profile edit form handler
+      const editProfileForm = document.getElementById('edit-profile-form');
+      if (editProfileForm) {
+        editProfileForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const formData = new FormData(editProfileForm);
+          const profileData = {
+            profileImage: String(formData.get('profileImage') || ''),
+            occupation: String(formData.get('occupation') || '')
+          };
+
+          try {
+            const response = await fetch(`${BACKEND}/users/profile`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify(profileData)
+            });
+
+            if (response.ok) {
+              closeProfileModal();
+              loadProfile();
+            } else {
+              const errorData = await response.json();
+              alert(errorData.message || 'Error updating profile');
+            }
+          } catch (error) {
+            alert('Error updating profile');
+          }
+        });
+      }
+
+      // Initial load
+      loadProfile();
+    });
+  </script>
+  </body>
+</html>

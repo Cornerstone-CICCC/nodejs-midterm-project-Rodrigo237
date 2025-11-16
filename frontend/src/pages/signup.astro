@@ -1,0 +1,95 @@
+---
+import '../styles/global.css';
+import '../styles/form.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const title = 'Sign Up';
+---
+
+<html lang="en">
+		<head>
+			<meta charset="utf-8" />
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<title>{title}</title>
+		</head>
+		<body>
+			<Header />
+
+			<div class="form-container">
+				<form id="signup-form" class="form">
+					<h2>Sign Up</h2>
+
+					<div class="form-group">
+						<label for="username">Username:</label>
+						<input type="text" id="username" name="username" placeholder="Username" required />
+					</div>
+
+					<div class="form-group">
+						<label for="password">Password:</label>
+						<input type="password" id="password" name="password" placeholder="Password" required />
+					</div>
+
+					<div class="form-group">
+						<label for="firstName">First name:</label>
+						<input type="text" id="firstName" name="firstName" placeholder="First name" required />
+					</div>
+
+					<div class="form-group">
+						<label for="lastName">Last name:</label>
+						<input type="text" id="lastName" name="lastName" placeholder="Last name" required />
+					</div>
+
+                    <div class="form-group">
+                        <label for="profileImage">Profile Image URL:</label>
+                        <input type="text" id="profileImage" name="profileImage" placeholder="Profile Image URL" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="occupation">Occupation:</label>
+                        <input type="text" id="occupation" name="occupation" placeholder="Occupation" />
+                    </div>
+
+					<button type="submit" class="btn-submit">Create account</button>
+
+					<p class="form-footer">Already have an account? <a href="/login">Log in</a></p>
+				</form>
+			</div>
+            <Footer></Footer>
+		<script>
+			// Sign up (fixed)
+			const form = document.getElementById('signup-form');
+			if (form && form instanceof HTMLFormElement) {
+				form.addEventListener('submit', async (e) => {
+					e.preventDefault();
+					const formData = new FormData(form);
+					const username = String(formData.get('username') || '').trim();
+					const password = String(formData.get('password') || '').trim();
+					const firstName = String(formData.get('firstName') || '').trim();
+					const lastName = String(formData.get('lastName') || '').trim();
+                    const profileImage = String(formData.get('profileImage') || '').trim();
+                    const occupation = String(formData.get('occupation') || '').trim();
+
+					try {
+						const res = await fetch('http://localhost:3700/users/signup', {
+							method: "POST",
+							headers: { "Content-type": "application/json" },
+							body: JSON.stringify({ username, password, firstName, lastName, profileImage, occupation })
+						});
+						const data = await res.json().catch(() => ({}));
+						if (res.ok) {
+							// Redirect to login page after successful signup
+							window.location.href = '/login';
+						} else {
+							console.error('Signup error:', data.message || data || res.statusText);
+							alert(data.message || 'Error creating account');
+						}
+					} catch (err) {
+						console.error(err);
+						alert('Could not connect to backend.');
+					}
+				});
+			}
+		</script>
+	</body>
+</html>
