@@ -130,55 +130,61 @@
     box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
   }
 
-  .suggestions-list-header {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    list-style: none;
-    margin: 0.5rem 0 0 0;
-    padding: 0;
-    color: white;
-    background: rgba(0, 0, 0, 0.9);
-    border: 1px solid rgba(102, 126, 234, 0.3);
-    border-radius: 6px;
-    max-height: 300px;
-    overflow-y: auto;
-    display: none;
-    z-index: 1000;
-  }
+.suggestions-list-header {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  list-style: none;
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+  background: #ffffff; /* fondo blanco sólido */
+  border: 1px solid #d1d5db; /* gris claro */
+  border-radius: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  display: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* sombra ligera */
+}
 
-  .suggestions-list-header.show {
-    display: block;
-  }
+.suggestions-list-header.show {
+  display: block;
+}
 
-  .suggestion-item-header {
-    padding: 0.75rem 1rem;
-    color: white;
-    cursor: pointer;
-    transition: background 0.2s ease;
-    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
-  }
+.suggestion-item-header {
+  padding: 0.75rem 1rem;
+  color: #374151; /* gris oscuro para texto */
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid #e5e7eb;
+}
 
-  .suggestion-item-header:hover {
-    background: rgba(102, 126, 234, 0.2);
-  }
+.suggestion-item-header:last-child {
+  border-bottom: none;
+}
 
-  .suggestion-item-header strong {
-    display: block;
-    color: white; /* accent color for suggestion title */
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
+.suggestion-item-header:hover {
+  background: #f3f4f6; /* gris claro al hover */
+}
 
-  .suggestion-item-header span {
-    display: block;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.85); /* lighter subtitle for better contrast */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.suggestion-item-header strong {
+  display: block;
+  color: #2563eb; /* azul para título */
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.suggestion-item-header span {
+  display: block;
+  font-size: 0.85rem;
+  color: #6b7280; /* gris medio para subtítulo */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
   @media (max-width: 768px) {
     .header {
