@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import '../styles/form.css';
 import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
 
 const title = 'Sign Up';
 ---
@@ -54,7 +55,7 @@ const title = 'Sign Up';
 					<p class="form-footer">Already have an account? <a href="/login">Log in</a></p>
 				</form>
 			</div>
-
+            <Footer></Footer>
 		<script>
 			// Sign up (fixed)
 			const form = document.getElementById('signup-form');

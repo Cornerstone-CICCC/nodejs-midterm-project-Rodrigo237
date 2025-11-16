@@ -204,6 +204,8 @@ const title = 'Profile';
         return;
       }
 
+      showSuggestions(query);
+
       try {
         const response = await fetch(`${BACKEND}/blogs/posts/search?q=${encodeURIComponent(query)}`, {
           credentials: 'include'
@@ -217,6 +219,37 @@ const title = 'Profile';
         console.error('Error searching posts:', error);
       }
     }
+
+    function showSuggestions(query) {
+  const suggestionsList = document.getElementById('suggestions-list');
+  if (!suggestionsList) return;
+
+  if (!query.trim()) {
+    suggestionsList.classList.remove('show');
+    suggestionsList.innerHTML = '';
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const filtered = allUserPosts.filter(post =>
+    post.title.toLowerCase().includes(q) ||
+    (post.summary || '').toLowerCase().includes(q)
+  );
+
+  if (filtered.length === 0) {
+    suggestionsList.classList.remove('show');
+    suggestionsList.innerHTML = '';
+    return;
+  }
+
+  suggestionsList.classList.add('show');
+  suggestionsList.innerHTML = filtered.map((post) => `
+    <li class="suggestion-item-header" onclick="window.selectSuggestion('${post.id}', '${post.title.replace(/'/g, "\\'")}')">
+      <strong>${post.title}</strong>
+      <span>${post.summary ? post.summary.substring(0, 50) + '...' : 'No description'}</span>
+    </li>
+  `).join('');
+}
 
     // Load current profile for editing
     async function loadCurrentProfileForEdit() {
@@ -238,6 +271,21 @@ const title = 'Profile';
       }
     }
 
+    window.selectSuggestion = function(postId, title) {
+        const searchInput = document.getElementById('search-input');
+        const suggestionsList = document.getElementById('suggestions-list');
+        
+        if (searchInput) searchInput.value = title;
+        if (suggestionsList) {
+            suggestionsList.classList.remove('show');
+            suggestionsList.innerHTML = '';
+        }
+        
+        // Filter post by ID and render
+        const filtered = allUserPosts.filter(p => p.id === postId);
+        renderBlogGrid(filtered);
+    };
+
     // Load profile from backend
     async function loadProfile() {
       try {
@@ -257,11 +305,11 @@ const title = 'Profile';
                 ${data.profileImage ? `<img src="${data.profileImage}" alt="Profile" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem;" />` : ''}
               </div>
               <div class="info-row">
-                <span class="label">Nombre:</span>
+                <span class="label">Name:</span>
                 <span class="value">${data.firstName} ${data.lastName}</span>
               </div>
               ${data.occupation ? `<div class="info-row">
-                <span class="label">Ocupación:</span>
+                <span class="label">Occupation:</span>
                 <span class="value">${data.occupation}</span>
               </div>` : ''}
             `;
@@ -332,13 +380,13 @@ const title = 'Profile';
         sessionStorage.removeItem('currentUsername');
         window.location.href = '/login';
       } catch (err) {
-        alert('Error al cerrar sesión');
+        alert('Error');
       }
     }
 
     // Global functions for post operations
     window.deletePost = async function(postId) {
-      if (!confirm('¿Estás seguro de que deseas eliminar este post?')) return;
+      if (!confirm('Are you sure you want to delete this post?')) return;
       
       try {
         const response = await fetch(`${BACKEND}/blogs/posts/${postId}`, {
